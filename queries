@@ -1,0 +1,172 @@
+SQL Queries :- 
+
+use book_store
+
+--Which books have been ordered the most times?--
+
+select b.title,sum(o.Quantity)as Total_Quantity_sold 
+from orders o inner join books b on o.book_ID = b.book_ID 
+group by b.title, o.Book_ID
+order by Total_Quantity_sold desc 
+offset 0 rows fetch next 5 rows only;
+
+
+-- List the top 5 most expensive books.--
+
+
+select title,round(Price,2)as Price from books 
+order by price desc
+offset 0 rows fetch next 5 rows only;
+
+--Which books have less than 10 units in stock?--
+
+select title,Author,stock from books 
+where stock<=10
+order by stock asc;
+
+--How many books are there in each genre?--
+
+select genre, count(*)as total from books
+group by genre
+order by total desc
+
+--Which books have never been ordered?--
+
+select b.title,b.Author,b.Genre,b.Published_Year from books b left join orders o on o.Book_ID = b.Book_ID
+where o.Book_ID is null
+
+--how many customer are there in each country--
+
+select country,count(*) as total_customers 
+from customers 
+group by country 
+order by total_customers desc ;
+
+--Who are the top 5 customers based on the number of orders placed?--
+
+select c.Name,count(*) as total_orders 
+from customers c join orders o on c.Customer_ID = o.Customer_ID 
+group by c.Name
+order by total_orders desc
+offset 0 rows fetch next 5 rows only
+
+--Which customers haven’t placed any orders?--
+
+SELECT c.Customer_ID, c.Name, c.Email
+FROM Customers c
+LEFT JOIN Orders o ON c.Customer_ID = o.Customer_ID
+WHERE o.Order_ID IS NULL;
+
+--How many customers have made more than 1 order? give sql query--
+
+select count(*) as repeated_customers
+from (
+select customer_ID
+from orders 
+group by customer_ID 
+having count(*) > 1
+) as multipleorders;
+
+--What are the most common email domains (like gmail.com, yahoo.com)?--
+
+SELECT 
+    RIGHT(Email, LEN(Email) - CHARINDEX('@', Email)) AS Domain,
+    COUNT(*) AS Count
+FROM Customers
+GROUP BY RIGHT(Email, LEN(Email) - CHARINDEX('@', Email))
+ORDER BY Count DESC;
+
+
+--How many orders were placed each year?--
+
+SELECT 
+    YEAR(Order_Date) AS Order_Year, 
+    COUNT(*) AS Total_Orders
+FROM 
+    Orders
+GROUP BY 
+    YEAR(Order_Date)
+ORDER BY 
+    Order_Year;
+
+--What is the total revenue generated per year?--
+
+select year(Order_Date)as Order_year, round(sum(Total_Amount),3)as Revenue 
+from Orders group by YEAR(Order_Date)
+
+--Which genre contributes the most to total revenue?--
+
+select b.Genre,round(sum(o.total_amount),3)as Revenue 
+from books b join orders o on b.Book_ID = o.Book_ID
+group by b.Genre
+
+
+--Which city generated the highest number of orders?--
+
+select c.City,count(o.Order_ID)as total_orders 
+from customers c join orders o on c.Customer_ID = o.Customer_ID
+group by c.City 
+order by total_orders desc
+offset 0 rows fetch next 5 rows only
+
+
+--What is the average value of an order?--
+
+SELECT 
+    AVG(b.Price) AS Average_Order_Value
+FROM 
+    Orders o
+JOIN 
+    Books b ON o.Book_ID = b.Book_ID;
+
+--Total Spending by Each Customer:--
+
+select c.Name ,sum(b.Price)as total_spent 
+from Customers c join orders o on c.Customer_ID = o.Customer_ID
+join books b on o.Book_ID = b.Book_ID
+group by c.Name
+order by total_spent desc
+
+--Top 3 Genres by Revenue:--
+
+SELECT Genre, Revenue
+FROM (
+    SELECT 
+        b.Genre,
+        SUM(b.Price) AS Revenue,
+        DENSE_RANK() OVER (ORDER BY SUM(b.Price) DESC) AS genre_rank
+    FROM Orders o
+    JOIN Books b ON o.Book_ID = b.Book_ID
+    GROUP BY b.Genre
+) ranked_genres
+WHERE genre_rank <= 3;
+
+--top 3 books and author generated revenue
+
+select author,title,revenue 
+from(
+	select 
+		b.author,
+		b.title,
+		sum(b.price)as revenue ,
+		dense_rank() over(order by sum(b.price) desc) as genre_rank
+	from orders o join books b on o.Book_ID = b.Book_ID
+	group by b.Author,b.Title
+) ranked_geners
+where genre_rank <=3
+
+--Monthly Order Count by Year and Month--
+
+SELECT 
+    CAST(YEAR(Order_Date) AS VARCHAR(4)) + '-' + 
+    RIGHT('0' + CAST(MONTH(Order_Date) AS VARCHAR(2)), 2) AS [Month],
+    COUNT(*) AS Order_Count
+FROM Orders
+GROUP BY 
+    YEAR(Order_Date),
+    MONTH(Order_Date)
+ORDER BY 
+    YEAR(Order_Date),
+    MONTH(Order_Date);
+
+
